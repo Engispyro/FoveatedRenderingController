@@ -7,6 +7,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal; 
 
 
 public class FoveationSettings : MonoBehaviour
@@ -104,7 +106,6 @@ private void ReceiveData()
             }
             catch (SocketException)
             {
-                // Triggered when client.Close() is called on OnDisable/OnDestroy to stop the thread gracefully
                 break;
             }
             catch (Exception err)
@@ -117,17 +118,45 @@ private void ReceiveData()
         }
     }
 
+    void AdjustFoveation(float active, float amount)
+    {
+        if(active == 0)
+        {
+            xrDisplays[0].foveatedRenderingLevel = 0;
+        }
+        else
+        {
+            xrDisplays[0].foveatedRenderingLevel = amount;
+        }
+    }
+
+    void AdjustRenderScale(float renderscale)
+    {
+        renderscale = Mathf.Clamp(renderscale, 0.1f, 2.0f);
+
+        if (GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset urpAsset)
+        {
+            urpAsset.renderScale = renderscale;
+        }
+    }
+
+    void AdjustResolution(float resolutionx, float resolutiony)
+    {
+        int resox = (int)resolutionx;
+        int resoy = (int)resolutiony;
+        Screen.SetResolution(resox, resoy, true);
+    }
+
     private void ProcessNetworkMessage(string message)
     {
         string command = message.Trim();
         Debug.Log($"Received controller command: {command}");
         string[] parts = command.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length >= 2)
+        if (parts.Length >= 3)
             {
-            if (float.TryParse(parts[0], out float foveateLevel))
+            if (float.TryParse(parts[0], out float foveateLevel) && float.TryParse(parts[2], out float foveateEnable))
             {
-                FoveateLevel = foveateLevel;
-                xrDisplays[0].foveatedRenderingLevel = FoveateLevel;
+                AdjustFoveation(foveateEnable, foveateLevel);
             }
 
             if (float.TryParse(parts[1], out float gazeTrack))
@@ -135,10 +164,18 @@ private void ReceiveData()
                 gazetrack = gazeTrack;
                 SetGazeAllowed(gazetrack);
             }
+            if (float.TryParse(parts[3], out float scalerender))
+            {
+                AdjustRenderScale(scalerender);
+            }
+            if(float.TryParse(parts[4], out float resx) && float.TryParse(parts[5], out float resy))
+            {
+                AdjustResolution(resx, resy);
+            }
         }
         else
         {
-            Debug.LogWarning($"Malformed network message. Expected 2 values, got: {parts.Length}");
+            Debug.LogWarning($"Malformed network message. Expected 3 values, got: {parts.Length}");
         }
         }  
     public void SetGazeAllowed(float state)
