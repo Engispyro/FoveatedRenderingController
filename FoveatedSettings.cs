@@ -279,6 +279,60 @@ float gazetrack = 1;
             RenderSettings.fogDensity = fogpower;
         }
     }
+
+    void changevsync(int vsyncval)
+    {
+        QualitySettings.vSyncCount = vsyncval;
+    }
+
+    void AdjustMainLight(float mainintense)
+    {
+        mainLight.intensity = mainintense;
+    }
+
+    void AdjustAntiAlias(float aliason, int aliasval)
+    {
+            
+        if(aliason == 0)
+            {
+                QualitySettings.antiAliasing = 0;
+            }
+            else
+            {
+                QualitySettings.antiAliasing = aliasval;
+            }
+    }
+
+    void AdjustEnvLights(float envintense)
+    {
+        RenderSettings.ambientIntensity = envintense;
+        DynamicGI.UpdateEnvironment();        
+    }
+
+    void AdjustMotionBlur(int motionon){
+        if(motionon == 1){
+            Debug.Log("blur on");
+            motionBlur.active = true;
+            }
+        else
+            {
+                Debug.Log("blur off");
+                motionBlur.active = false;
+            }
+    }
+
+    void AdjustDoF(float focusdist)
+    {
+        depthOfField.focusDistance.overrideState = true;
+        depthOfField.focusDistance.value = focusdist;
+    }
+
+    void AdjustVignette(float vignvalue)
+    {
+        vignvalue = vignvalue / 1000;
+        Debug.Log(vignvalue);
+        vignette.intensity.value = vignvalue;        
+    }
     private void ProcessNetworkMessage(string message)
     {
         string command = message.Trim();
@@ -314,36 +368,28 @@ float gazetrack = 1;
         {
             if(float.TryParse(parts[1], out float antialias) && int.TryParse(parts[2], out int aliasval))
             {
-                if(antialias == 0)
-                {
-                    QualitySettings.antiAliasing = 0;
-                }
-                else
-                {
-                    QualitySettings.antiAliasing = aliasval;
-                }
+                AdjustAntiAlias(antialias, aliasval);
             }
         }
         else if(parts[0] == "5" && (parts.Length >= 2))
         {
             if (int.TryParse(parts[1], out int vsyncon))
             {
-                QualitySettings.vSyncCount = vsyncon;
+                changevsync(vsyncon);
             }
         }
         else if(parts[0] == "6" && (parts.Length >= 2) && mainLight != null)
         {
             if (float.TryParse(parts[1], out float mainintensity))
             {
-                mainLight.intensity = mainintensity;
+                AdjustMainLight(mainintensity);
             }
         }
         else if(parts[0] == "7")
         {
             if (float.TryParse(parts[1], out float envintensity))
             {
-                RenderSettings.ambientIntensity = envintensity;
-                DynamicGI.UpdateEnvironment();
+                AdjustEnvLights(envintensity);
             }
         }
         else if(parts[0] == "8")
@@ -357,7 +403,6 @@ float gazetrack = 1;
         {
             if(float.TryParse(parts[1], out float farclip))
             {
-                Debug.Log("fortnite battle pass");
                 GetComponentInChildren<Camera>().farClipPlane = farclip;
             }
         }
@@ -378,15 +423,7 @@ float gazetrack = 1;
         {
             if(int.TryParse(parts[1], out int motionon))
             {
-                if(motionon == 1){
-                    Debug.Log("blur on");
-                    motionBlur.active = true;
-                }
-                else
-                {
-                    Debug.Log("blur off");
-                    motionBlur.active = false;
-                }
+                AdjustMotionBlur(motionon);
             }
         }
         else if(parts[0] == "13")
@@ -401,13 +438,13 @@ float gazetrack = 1;
             {   
             if (depthOfField == null || cameraTransform == null) 
             {
-              Debug.LogWarning("DepthOfField or cameraTransform is missing!");
+                Debug.LogWarning("DepthOfField or cameraTransform is missing!");
                 return;
             }
-         if (float.TryParse(parts[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out float focusdist))
+        //System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture
+         if (float.TryParse(parts[1], out float focusdist))
             {
-                depthOfField.focusDistance.overrideState = true;
-                depthOfField.focusDistance.value = focusdist;
+                AdjustDoF(focusdist);
             }
         }
         }
@@ -415,9 +452,7 @@ float gazetrack = 1;
         {
             if(vignette != null && float.TryParse(parts[1], out float vignvalue))
             {
-                vignvalue = vignvalue / 1000;
-                Debug.Log(vignvalue);
-                vignette.intensity.value = vignvalue;
+                AdjustVignette(vignvalue);
             }
         }
         else if(parts[0] == "16")
